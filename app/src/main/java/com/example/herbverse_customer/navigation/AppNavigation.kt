@@ -46,10 +46,7 @@ fun AppNavigation(
             composable(Screen.Login.route) {
                 LoginScreen(
                     authViewModel = authViewModel,
-                    onLoginSuccess = { 
-                        actions.navigateToHome()
-                        navController.navigate(Screen.Profile.route)
-                    }
+                    onLoginSuccess = actions.navigateToHome
                 )
             }
             
