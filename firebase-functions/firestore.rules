@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
+    function isVendor() {
+      return isSignedIn() && exists(/databases/$(database)/documents/vendors/$(request.auth.uid));
+    }
+    
+    function isCustomer() {
+      return isSignedIn() && exists(/databases/$(database)/documents/customers/$(request.auth.uid));
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Products - read by all, write by vendors (their own) and admins
+    match /products/{productId} {
+      allow read: if true; // Anyone can view products
+      
+      // Only vendors who own the product or admins can write
+      allow create: if isVendor() || isAdmin();
+      allow update, delete: if isAdmin() || 
+        (isVendor() && resource.data.vendorId == request.auth.uid);
+    }
+    
+    // Categories - read by all, managed by admins only
+    match /categories/{categoryId} {
+      allow read: if true; // Anyone can read categories
+      allow write: if isAdmin(); // Only admins can modify categories
+    }
+    
+    // Customer profiles - customers can only read/write their own profile
+    match /customers/{customerId} {
+      allow read, write: if isOwner(customerId) || isAdmin();
+    }
+    
+    // Vendor profiles - vendors can only read/write their own profile
+    match /vendors/{vendorId} {
+      allow read: if true; // Anyone can view vendor profiles
+      allow write: if isOwner(vendorId) || isAdmin();
+    }
+    
+    // Customer Orders - customers can only see their own orders
+    match /orders/{orderId} {
+      allow create: if isCustomer();
+      allow read: if isAdmin() || 
+        (isCustomer() && resource.data.customerId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Vendor Orders - vendors can only see orders for their products
+    match /vendor-orders/{orderId} {
+      allow read: if isAdmin() || 
+        (isVendor() && resource.data.vendorId == request.auth.uid) ||
+        (isCustomer() && resource.data.customerId == request.auth.uid);
+      
+      allow update: if isAdmin() || 
+        (isVendor() && resource.data.vendorId == request.auth.uid);
+        
+      allow create, delete: if isAdmin();
+    }
+    
+    // Shopping Cart - customers can only access their own cart
+    match /carts/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /items/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // Admin-only collections
+    match /vendor-requests/{requestId} {
+      allow create: if isSignedIn(); // Anyone can request to become a vendor
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
