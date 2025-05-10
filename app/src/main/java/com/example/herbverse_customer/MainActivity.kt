@@ -40,6 +40,7 @@ import com.example.herbverse_customer.ui.screens.home.HomeScreen
 import com.example.herbverse_customer.ui.screens.product.ProductDetailScreen
 import com.example.herbverse_customer.ui.screens.browse.ProductBrowseScreen
 import com.example.herbverse_customer.navigation.AppNavigation
+import com.example.herbverse_customer.navigation.Screen
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.delay
 
@@ -96,11 +97,9 @@ class MainActivity : ComponentActivity() {
             return
         }
         
-        LaunchedEffect(key1 = Unit) {
-            isLoading = true
-            val autoLogin = authViewModel.checkAutoLogin()
-            isAuthenticated = autoLogin
-            delay(300)
+        // Force sign out when app starts
+        LaunchedEffect(Unit) {
+            authViewModel.signOut()
             isLoading = false
         }
         
@@ -134,7 +133,8 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         AppNavigation(
             navController = navController,
-            isAuthenticated = isAuthenticated,
+            isAuthenticated = false, 
+            startDestination = Screen.Login.route,
             authViewModel = authViewModel
         )
     }

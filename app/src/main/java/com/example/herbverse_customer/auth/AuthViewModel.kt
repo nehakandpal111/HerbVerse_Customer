@@ -32,16 +32,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     // Helper method to check if user can auto login
     fun checkAutoLogin(): Boolean {
-        val sharedPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
-        val savedEmail = sharedPrefs.getString("saved_email", null)
-        val savedToken = sharedPrefs.getString("auth_token", null)
-
-        if (savedEmail != null && savedToken != null) {
-            // In real app, validate the token with server
-            _authState.value = AuthState.AUTHENTICATED
-            return true
-        }
-
+        // Always return false to ensure login screen is shown
         return false
     }
 
@@ -148,6 +139,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             val sharedPrefs = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
             sharedPrefs.edit().clear().apply()
 
+            // Reset state to unauthenticated
+            _error.value = null
             _authState.value = AuthState.UNAUTHENTICATED
         }
     }
